@@ -1,0 +1,30 @@
+ASTROLAB - PAQUET PWA
+=====================
+
+Contenu :
+  index.html              la page de l'application (prête pour l'installation)
+  manifest.webmanifest    la fiche d'identité de l'application (nom, icônes, couleurs)
+  sw.js                   le fonctionnement hors connexion
+  icons/                  les 4 icônes (192, 512, maskable, iPhone)
+
+Mise en ligne sur GitHub Pages :
+  1. Mets TOUS ces fichiers dans le même dossier de ton dépôt (idéalement à la racine),
+     avec le dossier "icons" à côté d'index.html.
+     Le fichier de la page doit s'appeler index.html : remplace ton fichier HTML actuel.
+  2. Dépôt > Settings > Pages : source "Deploy from a branch", branche main, dossier "/ (root)".
+  3. Ouvre l'adresse https://TON-NOM.github.io/TON-DEPOT/ dans Chrome.
+
+Test :
+  - Chrome sur ordinateur : F12 > onglet Application > Manifest, puis Service Workers.
+  - Un bouton "Installer" apparaît en haut de la page quand l'installation est possible.
+  - Hors connexion : après une première ouverture, coupe le réseau et relance l'application.
+
+Données : elles sont enregistrées dans le navigateur, séparément pour chaque adresse.
+La version GitHub ne reprend donc pas les données de la version claude.ai :
+exporte-les depuis l'une (Paramètres > Sauvegarde) et restaure-les dans l'autre.
+
+Démarrage vierge :
+  Au premier lancement, l'application n'a ni lieu, ni matériel, ni projet : un bandeau de
+  bienvenue invite à régler le lieu (bouton "Me géolocaliser") et à renseigner le matériel
+  (Paramètres > Matériel : focale, caméra, filtres). Le bandeau disparaît ensuite.
+  Pour retrouver tes propres données : Paramètres > Sauvegarde > Restaurer.
