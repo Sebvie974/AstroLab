@@ -365,9 +365,17 @@ function init(){st.matAct=null;nmat();st.ct=st.ct||[];st.ct.forEach(c=>C.push(c)
   Object.assign(st,{lat:+d.lat||st.lat,lon:+d.lon||st.lon,min:+d.min||st.min,dir:Array.isArray(d.dir)?d.dir:[1,1,1,1],ob:Array.isArray(d.ob)?d.ob:[],ss:d.ss,pj:d.pj,goals:d.goals||{},ct:Array.isArray(d.ct)?d.ct:[],nb:d.nb,mat:d.mat&&typeof d.mat==="object"?d.mat:null,mats:Array.isArray(d.mats)?d.mats:[],matDef:d.matDef,lieux:Array.isArray(d.lieux)?d.lieux:[],lieu:d.lieu});C.length=NB;st.ct.forEach(c=>C.push(c));rmp();ml();mig();save();
   st.matAct=null;nmat();mig();save();fm();fmt();upc();fl();fc();fp();rp();draw();return"Données restaurées : "+st.pj.length+" projet(s), "+st.ss.length+" session(s)."},
  manuel=t=>{$("bt").value=exp();document.querySelector("#bk details").open=true;msg(t)};
- $("bx").onclick=async()=>{try{const dl=await claude.use("downloads");if(!dl)return manuel("Le téléchargement n'est pas disponible ici : copie le texte ci-dessous dans un fichier.");await dl.save({filename:"astrolab-"+new Date().toISOString().slice(0,10)+".json",data:exp()});msg("Sauvegarde exportée.")}catch(e){if(e&&e.code==="declined")msg("Export annulé.");else manuel("Téléchargement impossible : copie le texte ci-dessous et enregistre-le dans un fichier.")}};
+ const TO1=4000,TO2=45000,dlb=(txt,name)=>{try{const a=document.createElement("a"),u=URL.createObjectURL(new Blob([txt],{type:"application/json"}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);return true}catch(e){return false}},
+ cpy=()=>{try{$("bt").focus();$("bt").select();if(document.execCommand&&document.execCommand("copy"))return true}catch(e){}try{navigator.clipboard.writeText($("bt").value);return true}catch(e){}return false},
+ tmo=(ms,code)=>new Promise((_,r)=>setTimeout(()=>r({code}),ms));
+ $("bx").onclick=async()=>{const txt=exp(),name="astrolab-"+new Date().toISOString().slice(0,10)+".json";$("bt").value=txt;msg("Export en cours…");
+  try{const dl=await Promise.race([claude.use("downloads"),tmo(TO1,"timeout")]);if(!dl)throw{code:"nodl"};
+   await Promise.race([dl.save({filename:name,data:txt}),tmo(TO2,"timeout")]);return msg("Sauvegarde exportée.")}
+  catch(e){if(e&&e.code==="declined")return msg("Export annulé.")}
+  const ok=dlb(txt,name);document.querySelector("#bk details").open=true;const c=cpy();
+  msg((ok?"Un téléchargement a été lancé : cherche le fichier "+name+" dans les téléchargements de ton navigateur. ":"")+(c?"Les données sont aussi copiées dans le presse-papiers : colle-les dans un fichier texte (extension .json) si le fichier n’apparaît pas.":"Si aucun fichier n’apparaît, copie le texte ci-dessous (Ctrl+A puis Ctrl+C) et enregistre-le dans un fichier .json."))};
  $("bf").onchange=()=>{const f=$("bf").files[0];if(!f)return;const r=new FileReader();r.onload=()=>msg(imp(String(r.result)));r.onerror=()=>msg("Lecture du fichier impossible.");r.readAsText(f);$("bf").value=""};
- $("bc").onclick=()=>manuel("Données affichées : copie tout le texte.");
+ $("bc").onclick=()=>{manuel("Données affichées et sélectionnées : copie-les (Ctrl+A puis Ctrl+C).");$("bt").focus();$("bt").select()};
  $("br").onclick=()=>msg($("bt").value.trim()?imp($("bt").value):"Colle d'abord le texte de ta sauvegarde.");
  $("padd").onclick=()=>{const t=+$("pt").value,c=C[t],comp=$("pc").value,nom=$("pn").value.trim()||c[0]+" – "+comp.split(" (")[0];const nid=Date.now();opP.add(nid);st.pj.push({id:nid,nom,t,comp,g:dg(c[4],comp),note:"",done:false});$("pn").value="";save();rp();fp();re()};
  $("sd").value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
