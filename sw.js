@@ -1,6 +1,9 @@
 // AstroLab : service worker (fonctionnement hors connexion)
-// Change le numéro de version ci-dessous quand tu modifies les icônes ou le manifeste.
-const VERSION = "astrolab-v1";
+// Il ne touche qu'à ses propres caches (noms commençant par "astrolab-") : les autres
+// applications hébergées à la même adresse github.io ne sont pas affectées.
+// Change le numéro de version quand tu modifies les icônes ou le manifeste.
+const PREFIXE = "astrolab-";
+const VERSION = PREFIXE + "v2";
 const COQUILLE = [
   "./",
   "./index.html",
@@ -18,7 +21,9 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((cles) => Promise.all(cles.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((cles) => Promise.all(
+        cles.filter((k) => k.startsWith(PREFIXE) && k !== VERSION).map((k) => caches.delete(k))
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -29,28 +34,28 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  // Page principale : réseau d'abord (pour recevoir les mises à jour), cache en secours hors connexion.
+  // Page principale : réseau d'abord (pour recevoir les mises à jour), copie locale hors connexion.
   if (req.mode === "navigate") {
-    e.respondWith(
-      fetch(req)
-        .then((rep) => {
-          const copie = rep.clone();
-          caches.open(VERSION).then((c) => c.put("./index.html", copie));
-          return rep;
-        })
-        .catch(() => caches.match("./index.html").then((x) => x || caches.match("./")))
-    );
+    e.respondWith((async () => {
+      const cache = await caches.open(VERSION);
+      try {
+        const rep = await fetch(req);
+        if (rep.ok && /(\/|index\.html)$/.test(url.pathname)) cache.put("./index.html", rep.clone());
+        return rep;
+      } catch (err) {
+        return (await cache.match("./index.html")) || (await cache.match("./")) || Response.error();
+      }
+    })());
     return;
   }
 
-  // Autres fichiers (icônes, manifeste) : cache d'abord.
-  e.respondWith(
-    caches.match(req).then((x) =>
-      x || fetch(req).then((rep) => {
-        const copie = rep.clone();
-        caches.open(VERSION).then((c) => c.put(req, copie));
-        return rep;
-      })
-    )
-  );
+  // Autres fichiers (icônes, manifeste) : copie locale tout de suite, mise à jour en arrière-plan.
+  e.respondWith((async () => {
+    const cache = await caches.open(VERSION);
+    const copie = await cache.match(req);
+    const reseau = fetch(req)
+      .then((rep) => { if (rep.ok) cache.put(req, rep.clone()); return rep; })
+      .catch(() => copie);
+    return copie || reseau;
+  })());
 });
