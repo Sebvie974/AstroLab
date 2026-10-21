@@ -3,11 +3,11 @@
 // applications hébergées à la même adresse github.io ne sont pas affectées.
 // Change le numéro de version quand tu modifies les icônes ou le manifeste.
 const PREFIXE = "astrolab-";
-const VERSION = PREFIXE + "v2";
+const VERSION = PREFIXE + "v3";
 const COQUILLE = [
   "./",
   "./index.html",
-  "./manifest.webmanifest",
+  "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
