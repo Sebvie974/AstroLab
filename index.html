@@ -922,6 +922,8 @@
           <label style="flex-direction: row; align-items: center; gap: 4px"><input type="checkbox" class="dr" data-i="2"> Sud</label>
           <label style="flex-direction: row; align-items: center; gap: 4px"><input type="checkbox" class="dr" data-i="3"> Ouest</label>
         </div>
+        <div class="mu" style="margin-top: 4px">Décocher une orientation masque tout le secteur jusqu'au zénith (90°). Si tu renseignes tes obstacles précis ci-dessous, laisse les 4 orientations cochées.</div>
+        <div id="dir-warn" class="wa" hidden style="margin-top: 6px"></div>
 
         <div class="row" style="margin-top: 10px">
           <span class="mu">Obstacle :</span>
@@ -4450,19 +4452,48 @@
         }, () => alert("Géolocalisation refusée : saisis ta position à la main."));
       };
 
-      document.querySelectorAll(".dr").forEach(c => {
-        c.checked = !!st.dir[c.dataset.i];
-        c.addEventListener("change", () => {
-          st.dir[c.dataset.i] = c.checked ? 1 : 0;
-          save();
-          draw();
-        });
-      });
+      const DN = ["Nord", "Est", "Sud", "Ouest"];
 
       const ro = () => {
+        const dw = $("dir-warn");
+        if (dw) {
+          const off = DN.filter((_, i) => !st.dir[i]);
+          if (off.length) {
+            dw.hidden = false;
+            dw.innerHTML = `⚠ ${off.length > 1 ? "Les orientations" : "L'orientation"} <b>${off.join(", ")}</b> ${off.length > 1 ? "sont décochées" : "est décochée"} : toute cible passant dans ce secteur est masquée jusqu'à 90°${st.ob.length ? ", même au-dessus de tes obstacles" : ""}. <button id="dir-all" style="margin-left:6px">Tout recocher</button>`;
+            $("dir-all").onclick = () => {
+              st.dir = [1, 1, 1, 1];
+              document.querySelectorAll(".dr").forEach(c => { c.checked = true; });
+              save();
+              ro();
+              draw();
+            };
+          } else {
+            dw.hidden = true;
+            dw.innerHTML = "";
+          }
+        }
+
         $("oli").innerHTML = st.ob.length
-          ? st.ob.map((x, i) => `<span style="margin-right: 12px"><b>${(x[3] || "Obstacle").replace(/</g, "&lt;")}</b> : ${x[0]}° → ${x[1]}°, hauteur ${x[2]}° <button data-x="${i}" class="ox" aria-label="Supprimer l'obstacle">×</button></span>`).join("")
+          ? st.ob.map((x, i) => {
+              const rawSpan = x[1] - x[0];
+              const span = rawSpan === 0 ? 0 : (((rawSpan % 360) + 360) % 360) || 360;
+              const dirs = new Set();
+              if (span === 0) {
+                dirs.add(Math.floor(((x[0] + 45) % 360) / 90));
+              } else {
+                for (let k = 0; k < span; k++) {
+                  dirs.add(Math.floor((((x[0] + k + 0.5) % 360 + 45) % 360) / 90));
+                }
+              }
+              const blocked = [...dirs].filter(d => !st.dir[d]).map(d => DN[d]);
+              const note = blocked.length
+                ? ` <span class="wa">(écrasé jusqu'à 90° car ${blocked.join("/")} décoché)</span>`
+                : "";
+              return `<span style="margin-right: 12px"><b>${(x[3] || "Obstacle").replace(/</g, "&lt;")}</b> : ${x[0]}° → ${x[1]}° (${span}° en sens horaire), hauteur ${x[2]}°${note} <button data-x="${i}" class="ox" aria-label="Supprimer l'obstacle">×</button></span>`;
+            }).join("")
           : "Aucun obstacle saisi.";
+
         document.querySelectorAll(".ox").forEach(b => {
           b.onclick = () => {
             st.ob.splice(+b.dataset.x, 1);
@@ -4472,6 +4503,16 @@
           };
         });
       };
+
+      document.querySelectorAll(".dr").forEach(c => {
+        c.checked = !!st.dir[c.dataset.i];
+        c.addEventListener("change", () => {
+          st.dir[c.dataset.i] = c.checked ? 1 : 0;
+          save();
+          ro();
+          draw();
+        });
+      });
 
       $("oadd").onclick = () => {
         const a = parseFloat($("oa").value);
